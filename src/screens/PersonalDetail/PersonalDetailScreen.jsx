@@ -1,13 +1,87 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image, KeyboardAvoidingView, Platform, SafeAreaView, ScrollView, Keyboard } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image, KeyboardAvoidingView, Platform, SafeAreaView, ScrollView, Keyboard, Alert } from 'react-native';
 import { moderateScale, scale, verticalScale } from 'react-native-size-matters';
 import Colors from '../../constants/colors';
+import { useRoute } from '@react-navigation/native';
+import axios from 'axios';
 
-const PersonalDetailScreen = ({ navigation }) => {
+const PersonalDetailScreen = ({ navigation, route }) => {
     const [focusedInput, setFocusedInput] = useState(null);
     const [keyboardVisible, setKeyboardVisible] = useState(false);
     const scrollViewRef = useRef(null);
     const inputRefs = useRef({});
+    const { type } = route.params || {};
+    const newroute = useRoute();
+    const { responseData } = newroute.params;
+
+    // console.log(responseData?.data?.user_id, 'response')
+
+    const [formData, setFormData] = useState({
+        fullName: '',
+        email: '',
+        emergency: '',
+        house: '',
+        country: '',
+        postalCode: '',
+        city: ''
+    });
+
+    // Handle input change
+    const handleChange = (key, value) => {
+        setFormData({ ...formData, [key]: value });
+    };
+
+    // ✅ Submit form
+    const handleSubmit = async () => {
+
+        if (type != 'agent') {
+            const mappedFormData = {
+                user_id: String(responseData?.data?.user_id), // Ensure string to avoid type issues
+                email: formData.email,
+                fullname: formData.fullName, // Map fullName to fullname
+                last_name: formData.fullName,
+                address: formData.house, // Map house to address
+                country: formData.country,
+                postal_code: formData.postalCode, // Map postalCode to postal_code
+                city: formData.city
+            };
+
+            try {
+                const response = await axios.post('http://172.20.10.4:4000/auth/update-user', mappedFormData);
+
+                if (response.status === 200 || response.status === 201) {
+                    Alert.alert("Success", "Details submitted successfully!");
+                    navigation.navigate('Chat'); // Navigate after success
+                }
+            } catch (error) {
+                console.error(error);
+                Alert.alert("Error", "Something went wrong while submitting");
+            }
+        } else {
+            const mappedFormData = {
+                email: formData.email,
+                first_name: formData.fullName, // Map fullName to fullname
+                last_name: formData.fullName,
+                address: formData.house, // Map house to address
+                business_name: formData.country,
+                postal_code: formData.postalCode, // Map postalCode to postal_code
+                city: formData.city
+            };
+
+            try {
+                const response = await axios.post('http://172.20.10.4:4000/auth/create-agent', mappedFormData);
+
+                if (response.status === 200 || response.status === 201) {
+                    Alert.alert("Success", "Details submitted successfully!");
+                    navigation.navigate('LoginScreen');
+                }
+            } catch (error) {
+                console.error(error);
+                Alert.alert("Error", "Something went wrong while submitting");
+            }
+
+        }
+    };
 
     // Listen to keyboard show/hide events
     useEffect(() => {
@@ -49,7 +123,7 @@ const PersonalDetailScreen = ({ navigation }) => {
                     automaticallyAdjustContentInsets={true}
                     bounces={false} >
                     <View style={styles.headerContent}>
-                        <TouchableOpacity style={styles.backButton}>
+                        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
                             <Image
                                 source={require('../../assets/images/backbutton.png')}
                                 resizeMode="cover"
@@ -65,6 +139,7 @@ const PersonalDetailScreen = ({ navigation }) => {
                             placeholderTextColor="#6B7280"
                             onFocus={() => setFocusedInput('fullName')}
                             onBlur={() => setFocusedInput(null)}
+                            onChangeText={(val) => handleChange('fullName', val)}
                         />
 
                         <Text style={styles.label}>Email</Text>
@@ -73,7 +148,9 @@ const PersonalDetailScreen = ({ navigation }) => {
                             placeholder="Email"
                             placeholderTextColor="#6B7280"
                             onFocus={() => setFocusedInput('email')}
-                            onBlur={() => setFocusedInput(null)} />
+                            onChangeText={(val) => handleChange('email', val)}
+                            onBlur={() => setFocusedInput(null)}
+                        />
 
                         <Text style={styles.label}>Emergency Contact</Text>
                         <TextInput
@@ -82,15 +159,17 @@ const PersonalDetailScreen = ({ navigation }) => {
                             placeholderTextColor="#6B7280"
                             onFocus={() => setFocusedInput('emergency')}
                             onBlur={() => setFocusedInput(null)}
+                            onChangeText={(val) => handleChange('emergency', val)}
                         />
 
-                        <Text style={styles.label}>House/Flat Number*</Text>
+                        <Text style={styles.label}>{type == 'agent' ? 'Pharmacy/Store Name*' : 'House/Flat Number*'}</Text>
                         <TextInput
                             style={[styles.input, focusedInput === 'house' && styles.highlightedInput]}
                             placeholder="Enter landmark"
                             placeholderTextColor="#6B7280"
                             onFocus={() => setFocusedInput('house')}
-                            onBlur={() => setFocusedInput(null)} />
+                            onBlur={() => setFocusedInput(null)}
+                            onChangeText={(val) => handleChange('house', val)} />
 
                         <Text style={styles.label}>Country*</Text>
                         <TextInput
@@ -98,6 +177,7 @@ const PersonalDetailScreen = ({ navigation }) => {
                             placeholder="Enter country name"
                             placeholderTextColor="#6B7280"
                             onFocus={() => setFocusedInput('country')}
+                            onChangeText={(val) => handleChange('country', val)}
                             onBlur={() => setFocusedInput(null)}
                         />
 
@@ -109,6 +189,7 @@ const PersonalDetailScreen = ({ navigation }) => {
                                     placeholderTextColor="#6B7280"
                                     onFocus={() => setFocusedInput('postalCode')}
                                     onBlur={() => setFocusedInput(null)}
+                                    onChangeText={(val) => handleChange('postalCode', val)}
                                 />
                             </View>
                             <View style={styles.halfInput}>
@@ -119,11 +200,12 @@ const PersonalDetailScreen = ({ navigation }) => {
                                     placeholderTextColor="#6B7280"
                                     onFocus={() => setFocusedInput('city')}
                                     onBlur={() => setFocusedInput(null)}
+                                    onChangeText={(val) => handleChange('city', val)}
                                 />
                             </View>
                         </View>
 
-                        <TouchableOpacity style={styles.button} onPress={() => navigation.navigate('Chat')}>
+                        <TouchableOpacity style={styles.button} onPress={handleSubmit}>
                             <Text style={styles.buttonText}>Save & Continue</Text>
                         </TouchableOpacity>
 
@@ -191,6 +273,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: moderateScale(16),
         marginBottom: verticalScale(15),
         backgroundColor: '#f5f5f5',
+        color: 'black'
     },
     highlightedInput: {
         borderColor: '#2196f3',
