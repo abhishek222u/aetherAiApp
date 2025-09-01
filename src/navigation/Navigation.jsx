@@ -20,7 +20,7 @@ const Stack = createNativeStackNavigator();
 
 export default function Navigation() {
     return (
-        <Stack.Navigator initialRouteName="Chat">
+        <Stack.Navigator initialRouteName="LoginScreen">
             <Stack.Screen name="LoginScreen" options={{ headerShown: false }} component={LoginScreen} />
             <Stack.Screen name="Verification" options={{ headerShown: false }} component={Verification} />
             <Stack.Screen name="PersonalDetail" options={{ headerShown: false }} component={PersonalDetailScreen} />
